@@ -125,7 +125,7 @@ fn log(msg:String){
 		.open("deleteme.txt")
 		.unwrap();
 
-	writeln!(&mut f, "{}", msg);
+	writeln!(&mut f, "{}", msg).unwrap();
 }
 
 ////
@@ -201,7 +201,7 @@ fn main() -> ExitCode {
 
 	let timezone: u8 = match timezone.parse() {
 		Ok(val) => val,
-		Err(err) => {
+		Err(_err) => {
 			println!("invalid u8 value: {timezone}");
 			return ExitCode::FAILURE;
 		},
@@ -220,7 +220,7 @@ fn main() -> ExitCode {
 
 	let restart_time_hour: u8 = match restart_time_hour.parse() {
 		Ok(val) => val,
-		Err(err) => {
+		Err(_err) => {
 			println!("invalid u8 value: {restart_time_hour}");
 			return ExitCode::FAILURE;
 		},
@@ -239,7 +239,7 @@ fn main() -> ExitCode {
 
 	let restart_time_minute: u8 = match restart_time_minute.parse() {
 		Ok(val) => val,
-		Err(err) => {
+		Err(_err) => {
 			println!("invalid u8 value: {restart_time_minute}");
 			return ExitCode::FAILURE;
 		},
