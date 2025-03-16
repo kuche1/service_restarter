@@ -1,8 +1,5 @@
 
 // TODO
-// take services from cmdline
-// push to github
-
 // #![deny(warnings)]
 // like `-Werror`
 
