@@ -1,5 +1,4 @@
 
-// TODO
 // #![deny(warnings)]
 // like `-Werror`
 
@@ -13,6 +12,7 @@ use std::fs::File;
 use std::thread;
 use std::time;
 use std::env;
+use std::fs;
 
 const SERVICE_SLEEP_AFTER_RESTART_SEC:u16 = 40;
 // give each service that much time before going on to the next one
@@ -27,11 +27,19 @@ fn time_now(utc:u8) -> (u8, u8) {
 
 	// println!("now: {:?}", now); // {:#?} pretty print ; {:?} regular print
 
-	let duration_since_epoch = now.duration_since(UNIX_EPOCH).unwrap();
+	let duration = now.duration_since(UNIX_EPOCH).unwrap();
+	// UNIX_EPOCH -> 1970-01-01 00:00:00 UTC
 
-	let seconds_since_epoch = duration_since_epoch.as_secs();
+	let seconds =
+		duration.as_secs()
+		+ (utc as u64) * 60 * 60 // utc
+		+ 60 * 60 * 24 * 365 * 2; // change base from 1970 to 1972 (a leap year)
+	let minutes = seconds / 60;
+	let hours = minutes / 60;
+	let days = hours / 24;
+	let years_4 = days / (366*1 + 365*3);
 
-	let seconds_since_start_of_day = seconds_since_epoch % (60 * 60 * 24);
+	let seconds_since_start_of_day = seconds % (60 * 60 * 24);
 
 	let minutes_since_start_of_day = seconds_since_start_of_day / 60;
 
@@ -40,9 +48,9 @@ fn time_now(utc:u8) -> (u8, u8) {
 	let hour:u8 = (minutes_since_start_of_day / 60).try_into().unwrap();
 	let minute:u8 = (minutes_since_start_of_day % 60).try_into().unwrap();
 
-	// println!("current time: {}:{}", hour, minute);
+	println!("current time: {}:{}", hour, minute);
 
-	return (hour + utc, minute);
+	return (hour, minute);
 }
 
 // greater than
@@ -115,14 +123,17 @@ fn sleep_1hour(msg:&str){
 ////
 
 fn log(msg:String){
-	// TODO determine error folder
-	// TODO actually create error folder if it doesnt exist
+	// TODO put timestamp in file name
+
+	unsafe{
+		fs::create_dir_all(ERROR_FOLDER.clone()).unwrap(); // using a mutable static variable is unsafe
+	}
 
 	let mut f = File
 		::options()
 		.append(true)
 		.create(true)
-		.open("deleteme.txt")
+		.open(format!("{}/{}", unsafe{&ERROR_FOLDER}, "deleteme"))
 		.unwrap();
 
 	writeln!(&mut f, "{}", msg).unwrap();
@@ -183,10 +194,26 @@ fn service_restart_if_running(name:&str){
 //// main
 ////
 
+static mut ERROR_FOLDER: String = String::new();
+// yeah, a global variable, I know
+
 fn main() -> ExitCode {
 	let args: Vec<String> = env::args().collect();
 
 	let arg_idx = 0;
+
+	// parse error folder
+
+	let arg_idx = arg_idx + 1;
+
+	if args.len() <= arg_idx {
+		println!("missing argument: error_folder (string)");
+		return ExitCode::FAILURE;
+	}
+
+	unsafe{
+		ERROR_FOLDER = args[arg_idx].clone(); // unsing mutable static variables is unsafe
+	}
 
 	// parse timezone
 
@@ -256,7 +283,7 @@ fn main() -> ExitCode {
 
 	let services_to_restart = &args[arg_idx..];
 
-	// main loop
+	// wait for the right time
 
 	loop{
 		let (hour, minute) = time_now(timezone);
@@ -276,6 +303,8 @@ fn main() -> ExitCode {
 
 	println!("time to restart");
 	println!();
+
+	// restart
 
 	for service in services_to_restart {
 		service_restart_if_running(service);
