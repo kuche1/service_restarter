@@ -37,7 +37,7 @@ fn time_now(utc:u8) -> (u8, u8) {
 	let minutes = seconds / 60;
 	let hours = minutes / 60;
 	let days = hours / 24;
-	let years_4 = days / (366*1 + 365*3);
+	let years_4 = days / (366*1 + 365*3); // this will break at year 2100 -> https://www.calendar.best/images/leap-years/list-of-leap-years-from-1900-to-3000-600.jpg
 
 	let seconds_since_start_of_day = seconds % (60 * 60 * 24);
 
